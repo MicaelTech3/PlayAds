@@ -1,0 +1,278 @@
+// src/pages/Home.jsx
+import { useAnuncios } from "../hooks/useFirebase";
+import { usePlaylists } from "../hooks/useFirebase";
+import { usePlayers } from "../hooks/useFirebase";
+import { usePlayer } from "../context/PlayerContext";
+import { Activity, Radio, ListMusic, Zap } from "lucide-react";
+
+function StatCard({ icon: Icon, value, label, color }) {
+  return (
+    <div style={styles.statCard}>
+      <div style={{ ...styles.statIcon, background: color + "22" }}>
+        <Icon size={22} color={color} />
+      </div>
+      <div style={styles.statNum}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+export default function Home({ setView }) {
+  const { anuncios } = useAnuncios();
+  const { playlists, playNow } = usePlaylists();
+  const { players } = usePlayers();
+  const { play } = usePlayer();
+
+  const totalAnuncios  = Object.keys(anuncios).length;
+  const totalPlaylists = Object.keys(playlists).length;
+  const ativasCount    = Object.values(playlists).filter(p => p.ativa).length;
+  const now = Date.now();
+  const onlineCount = Object.values(players).filter(p => (now - (p.last_seen || 0)) < 30000).length;
+
+  const recentAnuncios = Object.entries(anuncios)
+    .sort(([,a],[,b]) => (b.criado_em || 0) - (a.criado_em || 0))
+    .slice(0, 6);
+
+  const ativasArr = Object.entries(playlists)
+    .filter(([,p]) => p.ativa)
+    .slice(0, 4);
+
+  return (
+    <div style={styles.wrap}>
+      {/* Header gradient */}
+      <div style={styles.hero}>
+        <div style={styles.heroGrad} />
+        <div style={styles.heroContent}>
+          <h1 style={styles.heroTitle}>Boa tarde 👋</h1>
+          <p style={styles.heroSub}>Gerencie seus anúncios em tempo real</p>
+        </div>
+      </div>
+
+      <div style={styles.content}>
+        {/* Stats */}
+        <div style={styles.statsRow}>
+          <StatCard icon={Radio}     value={totalAnuncios}  label="Anúncios"         color="#1db954" />
+          <StatCard icon={ListMusic} value={totalPlaylists} label="Playlists"         color="#1d9bf0" />
+          <StatCard icon={Zap}       value={ativasCount}    label="Playlists Ativas"  color="#f59e0b" />
+          <StatCard icon={Activity}  value={onlineCount}    label="Players Online"    color="#ec4899" />
+        </div>
+
+        {/* Playlists rápidas */}
+        {ativasArr.length > 0 && (
+          <section style={styles.section}>
+            <div style={styles.sectionHeader}>
+              <h2 style={styles.sectionTitle}>Playlists Ativas</h2>
+              <button style={styles.seeAll} onClick={() => setView("playlists")}>Ver todas</button>
+            </div>
+            <div style={styles.plGrid}>
+              {ativasArr.map(([id, pl]) => (
+                <div key={id} style={styles.plCard}>
+                  <div style={styles.plCardThumb}>
+                    <ListMusic size={28} color="#b3b3b3" />
+                    <button
+                      style={styles.plPlayBtn}
+                      onClick={async () => {
+                        await playNow(id);
+                        // Tocar primeiro item no player web
+                        const firstItem = pl.itens?.[0];
+                        if (firstItem) play({ nome: firstItem.nome, url: firstItem.url, filename: firstItem.filename });
+                      }}
+                    >
+                      ▶
+                    </button>
+                  </div>
+                  <div style={styles.plCardName}>{pl.nome}</div>
+                  <div style={styles.plCardMeta}>
+                    {pl.itens?.length || 0} faixas
+                    {pl.horario ? ` · ⏰ ${pl.horario}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Anúncios recentes */}
+        {recentAnuncios.length > 0 && (
+          <section style={styles.section}>
+            <div style={styles.sectionHeader}>
+              <h2 style={styles.sectionTitle}>Adicionados Recentemente</h2>
+              <button style={styles.seeAll} onClick={() => setView("anuncios")}>Ver todos</button>
+            </div>
+            <div style={styles.trackList}>
+              {recentAnuncios.map(([id, a], i) => (
+                <div
+                  key={id}
+                  style={styles.trackRow}
+                  onMouseEnter={e => e.currentTarget.style.background = "#282828"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <span style={styles.trackNum}>{i + 1}</span>
+                  <div style={styles.trackIcon}>
+                    <Radio size={14} color="#1db954" />
+                  </div>
+                  <div style={styles.trackInfo}>
+                    <span style={styles.trackName}>{a.nome}</span>
+                    <span style={styles.trackMeta}>{a.tipo?.includes("wav") ? "WAV" : "MP3"}</span>
+                  </div>
+                  <span style={styles.trackSize}>{a.tamanho ? (a.tamanho/1024/1024).toFixed(1) + " MB" : ""}</span>
+                  <button
+                    style={styles.trackPlayBtn}
+                    onClick={() => play({ nome: a.nome, url: a.url, filename: a.filename })}
+                  >
+                    ▶ Tocar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  wrap: { overflowY: "auto", flex: 1 },
+  hero: {
+    position: "relative",
+    padding: "48px 32px 28px",
+    overflow: "hidden",
+  },
+  heroGrad: {
+    position: "absolute",
+    inset: 0,
+    background: "linear-gradient(135deg, #1a4a2e 0%, #0f2419 50%, transparent 100%)",
+    zIndex: 0,
+  },
+  heroContent: { position: "relative", zIndex: 1 },
+  heroTitle: { fontSize: 36, fontWeight: 800, color: "#fff", marginBottom: 6 },
+  heroSub:   { fontSize: 15, color: "#b3b3b3" },
+  content: { padding: "24px 32px 32px" },
+  statsRow: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: 16,
+    marginBottom: 40,
+  },
+  statCard: {
+    background: "#181818",
+    borderRadius: 10,
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    transition: "background .15s",
+    cursor: "default",
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  statNum:   { fontSize: 32, fontWeight: 800, color: "#fff" },
+  statLabel: { fontSize: 13, color: "#b3b3b3", fontWeight: 500 },
+  section:   { marginBottom: 40 },
+  sectionHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 22, fontWeight: 700, color: "#fff" },
+  seeAll: {
+    background: "transparent",
+    border: "none",
+    color: "#b3b3b3",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    fontFamily: "'Figtree', sans-serif",
+    transition: "color .15s",
+  },
+  plGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: 16,
+  },
+  plCard: {
+    background: "#181818",
+    borderRadius: 8,
+    padding: 16,
+    cursor: "pointer",
+    transition: "background .2s",
+  },
+  plCardThumb: {
+    width: "100%",
+    aspectRatio: "1",
+    background: "#282828",
+    borderRadius: 6,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    position: "relative",
+    overflow: "hidden",
+  },
+  plPlayBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 40,
+    height: 40,
+    borderRadius: "50%",
+    background: "#1db954",
+    border: "none",
+    color: "#000",
+    fontSize: 16,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 16px rgba(0,0,0,.5)",
+    opacity: 0,
+    transition: "opacity .2s, transform .15s",
+  },
+  plCardName: { fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 },
+  plCardMeta: { fontSize: 12, color: "#b3b3b3" },
+  trackList: { display: "flex", flexDirection: "column" },
+  trackRow: {
+    display: "grid",
+    gridTemplateColumns: "32px 40px 1fr 80px 90px",
+    alignItems: "center",
+    gap: 12,
+    padding: "10px 12px",
+    borderRadius: 6,
+    cursor: "default",
+    transition: "background .15s",
+  },
+  trackNum:  { fontSize: 14, color: "#b3b3b3", textAlign: "center", fontFamily: "'DM Mono', monospace" },
+  trackIcon: {
+    width: 36,
+    height: 36,
+    background: "#282828",
+    borderRadius: 4,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trackInfo: { display: "flex", flexDirection: "column", gap: 2, overflow: "hidden" },
+  trackName: { fontSize: 14, fontWeight: 500, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  trackMeta: { fontSize: 11, color: "#b3b3b3" },
+  trackSize: { fontSize: 12, color: "#b3b3b3", fontFamily: "'DM Mono', monospace" },
+  trackPlayBtn: {
+    background: "#1db954",
+    border: "none",
+    borderRadius: 20,
+    color: "#000",
+    fontSize: 12,
+    fontWeight: 700,
+    padding: "6px 14px",
+    cursor: "pointer",
+    fontFamily: "'Figtree', sans-serif",
+  },
+};

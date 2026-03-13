@@ -1,0 +1,87 @@
+2026-03-12 20:02:09,501 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:02:11,177 [INFO] Firebase: mudança detectada em playlists
+2026-03-12 20:04:35,171 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:04:36,808 [INFO] Firebase: mudança detectada em playlists
+2026-03-12 20:08:02,126 [INFO] Firebase: mudança detectada em playlists
+2026-03-12 20:08:15,205 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:08:16,227 [INFO] ▶ Iniciando playlist: Teste
+2026-03-12 20:08:16,595 [INFO] Baixando: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:08:16,806 [INFO] Firebase: mudança detectada em playlists
+2026-03-12 20:08:18,885 [INFO] Download concluído: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:08:18,890 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:08:18,891 [INFO]   ▶ Nike - Running Isn't Just Running _ Spec Ad (rep 1)
+2026-03-12 20:09:04,732 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:09:04,919 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:09:05,105 [INFO] ✓ Playlist 'Teste' concluída.
+2026-03-12 20:10:06,232 [INFO] ▶ Iniciando playlist: Teste
+2026-03-12 20:10:06,609 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:10:06,609 [INFO]   ▶ Nike - Running Isn't Just Running _ Spec Ad (rep 1)
+2026-03-12 20:10:52,349 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:10:52,541 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:10:52,734 [INFO] ✓ Playlist 'Teste' concluída.
+2026-03-12 20:11:20,850 [INFO] Firebase: mudança detectada em playlists
+2026-03-12 20:11:43,783 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:11:45,032 [INFO] ▶ Iniciando playlist: Teste
+2026-03-12 20:11:45,408 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:11:45,408 [INFO]   ▶ Nike - Running Isn't Just Running _ Spec Ad (rep 1)
+2026-03-12 20:11:45,599 [INFO] Firebase: mudança detectada em playlists
+2026-03-12 20:11:48,918 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:11:49,099 [WARNING] pycaw: [WinError -2147221008] CoInitialize não foi chamado
+2026-03-12 20:11:49,286 [INFO] ✓ Playlist 'Teste' concluída.
+2026-03-12 20:11:57,186 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:11:58,217 [INFO] ▶ Playlist: Teste  (1 faixas)
+2026-03-12 20:11:58,784 [INFO] ⚡ Tocar agora: Teste
+2026-03-12 20:11:58,784 [WARNING] Já em reprodução, ignorando.
+2026-03-12 20:12:41,920 [INFO] ✓ Concluída: Teste
+2026-03-12 20:12:49,588 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:13:38,299 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:15:48,250 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:16:40,381 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:16:41,389 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:17:28,075 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:18:16,378 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:18:17,449 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:19:04,746 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:20:04,496 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:20:05,491 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:20:06,080 [INFO] ⚡ Tocar agora: meu teste
+2026-03-12 20:20:06,080 [WARNING] Já em reprodução, ignorando.
+2026-03-12 20:20:52,805 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:26:55,439 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:26:56,571 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:26:57,186 [INFO] ⚡ Tocar agora: meu teste
+2026-03-12 20:26:57,186 [WARNING] Já em reprodução, ignorando.
+2026-03-12 20:27:43,046 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:28:09,156 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:28:10,165 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:28:10,761 [INFO] ⚡ Tocar agora: meu teste
+2026-03-12 20:28:10,761 [WARNING] Já em reprodução, ignorando.
+2026-03-12 20:28:56,847 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:29:09,119 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:29:10,134 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:29:10,698 [INFO] ⚡ Tocar agora: meu teste
+2026-03-12 20:29:10,698 [WARNING] Já em reprodução, ignorando.
+2026-03-12 20:29:12,172 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:29:23,109 [INFO] Firebase conectado com sucesso.
+2026-03-12 20:29:24,109 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:29:24,479 [INFO] Baixando: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:29:24,689 [INFO] ⚡ Tocar agora: meu teste
+2026-03-12 20:29:24,690 [WARNING] Já em reprodução, ignorando.
+2026-03-12 20:29:25,081 [ERROR] Download falhou (1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3): HTTP Error 404: Not Found
+2026-03-12 20:29:25,436 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:31:24,114 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:31:24,485 [INFO] Baixando: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:31:25,264 [ERROR] Download falhou (1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3): HTTP Error 404: Not Found
+2026-03-12 20:31:25,625 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:33:24,119 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:33:24,492 [INFO] Baixando: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:33:25,266 [ERROR] Download falhou (1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3): HTTP Error 404: Not Found
+2026-03-12 20:33:25,637 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:35:24,123 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:35:24,491 [INFO] Baixando: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:35:25,672 [ERROR] Download falhou (1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3): HTTP Error 404: Not Found
+2026-03-12 20:35:26,043 [INFO] ✓ Concluída: meu teste
+2026-03-12 20:37:24,128 [INFO] ▶ Playlist: meu teste  (1 faixas)
+2026-03-12 20:37:24,495 [INFO] Baixando: 1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3
+2026-03-12 20:37:25,098 [ERROR] Download falhou (1773356655883_Nike_-_Running_Isn't_Just_Running___Spec_Ad.mp3): HTTP Error 404: Not Found
+2026-03-12 20:37:25,462 [INFO] ✓ Concluída: meu teste

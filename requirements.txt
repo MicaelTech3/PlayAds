@@ -1,0 +1,5 @@
+firebase-admin>=6.5.0
+pygame>=2.5.0
+requests>=2.31.0
+pycaw>=20240210
+comtypes>=1.4.1

@@ -1,0 +1,361 @@
+// src/pages/Playlists.jsx
+import { useState } from "react";
+import { usePlaylists } from "../hooks/useFirebase";
+import { useAnuncios } from "../hooks/useFirebase";
+import { usePlayer } from "../context/PlayerContext";
+import { useToast } from "../components/Toast";
+import {
+  ListMusic, Play, Pause, Zap, Trash2,
+  Plus, Clock, RefreshCw, X, GripVertical
+} from "lucide-react";
+
+export default function Playlists() {
+  const { playlists, criarPlaylist, togglePlaylist, deletePlaylist, playNow } = usePlaylists();
+  const { anuncios } = useAnuncios();
+  const { play, nowPlaying, isPlaying, togglePlay } = usePlayer();
+  const toast = useToast();
+
+  const [nome, setNome]         = useState("");
+  const [horario, setHorario]   = useState("");
+  const [intervalo, setIntervalo] = useState("");
+  const [itens, setItens]       = useState([]);
+  const [building, setBuilding] = useState(false);
+
+  const addItem = (id, a) => {
+    if (itens.find(i => i.anuncio_id === id)) { toast("Já adicionado", "error"); return; }
+    setItens(prev => [...prev, { anuncio_id: id, nome: a.nome, url: a.url, filename: a.filename, repeticoes: 1, ordem: prev.length }]);
+  };
+
+  const removeItem = idx => setItens(prev => prev.filter((_,i) => i !== idx));
+
+  const handleCriar = async () => {
+    if (!nome.trim()) { toast("Informe o nome da playlist", "error"); return; }
+    if (itens.length === 0) { toast("Adicione ao menos um anúncio", "error"); return; }
+    await criarPlaylist({
+      nome: nome.trim(),
+      horario: horario || null,
+      intervalo_minutos: parseInt(intervalo) || 0,
+      itens: itens.map((it, idx) => ({ ...it, ordem: idx })),
+      ativa: true,
+    });
+    toast("Playlist criada!", "success");
+    setNome(""); setHorario(""); setIntervalo(""); setItens([]); setBuilding(false);
+  };
+
+  const handlePlayNow = async (id, pl) => {
+    await playNow(id);
+    const first = pl.itens?.[0];
+    if (first) play({ nome: first.nome, url: first.url, filename: first.filename });
+    toast(`▶ Tocando "${pl.nome}" agora`, "success");
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Excluir playlist?")) return;
+    await deletePlaylist(id);
+    toast("Playlist removida", "success");
+  };
+
+  const plArr = Object.entries(playlists)
+    .sort(([,a],[,b]) => (b.criado_em||0) - (a.criado_em||0));
+
+  return (
+    <div style={styles.wrap}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={styles.headerGrad} />
+        <div style={styles.headerContent}>
+          <div style={styles.headerIcon}><ListMusic size={52} color="rgba(255,255,255,.6)" /></div>
+          <div>
+            <div style={styles.headerSub}>Gerenciar</div>
+            <h1 style={styles.headerTitle}>Playlists</h1>
+            <div style={styles.headerMeta}>{plArr.length} playlist{plArr.length !== 1 ? "s" : ""}</div>
+          </div>
+        </div>
+        <button style={styles.newBtn} onClick={() => setBuilding(!building)}>
+          <Plus size={18} /> Nova Playlist
+        </button>
+      </div>
+
+      <div style={styles.content}>
+        {/* Builder */}
+        {building && (
+          <div style={styles.builder}>
+            <div style={styles.builderHeader}>
+              <h3 style={styles.builderTitle}>Criar nova playlist</h3>
+              <button style={styles.closeBtn} onClick={() => setBuilding(false)}><X size={18} /></button>
+            </div>
+
+            <div style={styles.formRow}>
+              <div style={styles.formField}>
+                <label style={styles.label}>Nome</label>
+                <input style={styles.input} value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Promoção de Verão" />
+              </div>
+              <div style={styles.formField}>
+                <label style={styles.label}><Clock size={12} /> Horário</label>
+                <input style={styles.input} type="time" value={horario} onChange={e => setHorario(e.target.value)} />
+              </div>
+              <div style={styles.formField}>
+                <label style={styles.label}><RefreshCw size={12} /> Repetir a cada (min)</label>
+                <input style={styles.input} type="number" min="0" value={intervalo} onChange={e => setIntervalo(e.target.value)} placeholder="20" />
+              </div>
+            </div>
+
+            <div style={styles.builderBody}>
+              {/* Fila */}
+              <div style={styles.queuePanel}>
+                <div style={styles.panelTitle}>Fila de anúncios</div>
+                {itens.length === 0 && (
+                  <div style={styles.queueEmpty}>Adicione anúncios da lista →</div>
+                )}
+                {itens.map((item, idx) => (
+                  <div key={idx} style={styles.queueItem}>
+                    <GripVertical size={16} color="#6a6a6a" style={{ cursor: "grab" }} />
+                    <span style={styles.queueName}>{item.nome}</span>
+                    <div style={styles.queueRep}>
+                      <label style={{ fontSize: 11, color: "#b3b3b3" }}>×</label>
+                      <input
+                        style={styles.repInput}
+                        type="number" min="1" max="99"
+                        value={item.repeticoes}
+                        onChange={e => setItens(prev => prev.map((it, i) => i === idx ? { ...it, repeticoes: parseInt(e.target.value)||1 } : it))}
+                      />
+                    </div>
+                    <button style={styles.removeBtn} onClick={() => removeItem(idx)}><X size={14} /></button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Anúncios */}
+              <div style={styles.pickPanel}>
+                <div style={styles.panelTitle}>Anúncios disponíveis</div>
+                <div style={styles.pickList}>
+                  {Object.entries(anuncios).map(([id, a]) => (
+                    <div key={id} style={styles.pickItem}>
+                      <span style={styles.pickName}>{a.nome}</span>
+                      <button style={styles.addItemBtn} onClick={() => addItem(id, a)}>
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {Object.keys(anuncios).length === 0 && (
+                    <p style={{ color: "#6a6a6a", fontSize: 13, padding: 12 }}>Nenhum anúncio carregado</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button style={styles.createBtn} onClick={handleCriar}>Salvar Playlist</button>
+          </div>
+        )}
+
+        {/* List */}
+        <div style={styles.plList}>
+          {plArr.map(([id, pl]) => {
+            const firstItem = pl.itens?.[0];
+            const isThisPlaying = firstItem && nowPlaying?.url === firstItem.url;
+            return (
+              <div
+                key={id}
+                style={{ ...styles.plCard, ...(pl.ativa ? {} : styles.plCardPaused) }}
+                onMouseEnter={e => { const btn = e.currentTarget.querySelector(".play-overlay"); if (btn) btn.style.opacity = "1"; }}
+                onMouseLeave={e => { const btn = e.currentTarget.querySelector(".play-overlay"); if (btn) btn.style.opacity = "0"; }}
+              >
+                {/* Thumb */}
+                <div style={styles.plThumb}>
+                  <ListMusic size={24} color="#b3b3b3" />
+                  <button
+                    className="play-overlay"
+                    style={styles.playOverlay}
+                    onClick={() => handlePlayNow(id, pl)}
+                  >
+                    {isThisPlaying && isPlaying ? <Pause size={22} fill="#000" color="#000" /> : <Play size={22} fill="#000" color="#000" />}
+                  </button>
+                </div>
+
+                {/* Info */}
+                <div style={styles.plInfo}>
+                  <div style={styles.plName}>{pl.nome}</div>
+                  <div style={styles.plMeta}>
+                    {pl.itens?.length || 0} faixas
+                    {pl.horario ? ` · ⏰ ${pl.horario}` : ""}
+                    {pl.intervalo_minutos ? ` · 🔁 ${pl.intervalo_minutos}min` : ""}
+                  </div>
+                  <div style={styles.plStatus}>
+                    <div style={{ ...styles.statusDot, background: pl.ativa ? "#1db954" : "#6a6a6a" }} />
+                    <span style={{ fontSize: 12, color: pl.ativa ? "#1db954" : "#6a6a6a" }}>
+                      {pl.ativa ? "Ativa" : "Pausada"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={styles.plActions}>
+                  <button
+                    style={{ ...styles.plBtn, ...styles.plBtnGreen }}
+                    onClick={() => handlePlayNow(id, pl)}
+                    title="Tocar agora"
+                  >
+                    <Zap size={14} /> Tocar agora
+                  </button>
+                  <button
+                    style={styles.plBtn}
+                    onClick={() => togglePlaylist(id, pl.ativa)}
+                    title={pl.ativa ? "Pausar" : "Ativar"}
+                  >
+                    {pl.ativa ? <Pause size={14} /> : <Play size={14} />}
+                    {pl.ativa ? "Pausar" : "Ativar"}
+                  </button>
+                  <button
+                    style={{ ...styles.plBtn, ...styles.plBtnDanger }}
+                    onClick={() => handleDelete(id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          {plArr.length === 0 && (
+            <div style={styles.empty}>
+              <ListMusic size={48} color="#3e3e3e" />
+              <p style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>Nenhuma playlist criada</p>
+              <p style={{ fontSize: 14, color: "#b3b3b3" }}>Clique em "Nova Playlist" para começar</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  wrap: { overflowY: "auto", flex: 1 },
+  header: {
+    position: "relative", padding: "48px 32px 28px",
+    display: "flex", alignItems: "flex-end", justifyContent: "space-between",
+  },
+  headerGrad: {
+    position: "absolute", inset: 0,
+    background: "linear-gradient(135deg, #1a3a4a 0%, #0f2030 50%, transparent 100%)",
+  },
+  headerContent: { position: "relative", zIndex: 1, display: "flex", alignItems: "flex-end", gap: 24 },
+  headerIcon: {
+    width: 80, height: 80, background: "#282828",
+    borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+    boxShadow: "0 8px 32px rgba(0,0,0,.5)",
+  },
+  headerSub:   { fontSize: 12, fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: 1 },
+  headerTitle: { fontSize: 40, fontWeight: 800, color: "#fff", marginBottom: 4 },
+  headerMeta:  { fontSize: 13, color: "#b3b3b3" },
+  newBtn: {
+    position: "relative", zIndex: 1,
+    display: "flex", alignItems: "center", gap: 8,
+    background: "#1db954", color: "#000",
+    border: "none", borderRadius: 30,
+    fontSize: 14, fontWeight: 700,
+    padding: "12px 24px",
+    cursor: "pointer", fontFamily: "'Figtree', sans-serif",
+    alignSelf: "flex-end",
+  },
+  content: { padding: "24px 32px 80px" },
+  builder: {
+    background: "#181818", borderRadius: 12,
+    padding: 28, marginBottom: 32,
+    border: "1px solid #282828",
+  },
+  builderHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
+  builderTitle:  { fontSize: 18, fontWeight: 700, color: "#fff" },
+  closeBtn: { background: "transparent", border: "none", color: "#b3b3b3", cursor: "pointer", display: "flex" },
+  formRow: { display: "grid", gridTemplateColumns: "1fr 160px 200px", gap: 16, marginBottom: 24 },
+  formField: { display: "flex", flexDirection: "column", gap: 6 },
+  label:  { fontSize: 12, fontWeight: 600, color: "#b3b3b3", display: "flex", alignItems: "center", gap: 5 },
+  input: {
+    background: "#282828", border: "1px solid #3e3e3e",
+    borderRadius: 6, color: "#fff",
+    fontSize: 14, padding: "11px 13px",
+    outline: "none", fontFamily: "'Figtree', sans-serif",
+  },
+  builderBody: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 },
+  panelTitle: { fontSize: 12, fontWeight: 700, color: "#b3b3b3", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 },
+  queuePanel: {
+    background: "#282828", borderRadius: 8, padding: 16,
+    display: "flex", flexDirection: "column", gap: 6, minHeight: 120,
+  },
+  queueEmpty: { fontSize: 13, color: "#6a6a6a", padding: "16px 0" },
+  queueItem: {
+    display: "flex", alignItems: "center", gap: 10,
+    background: "#3e3e3e", borderRadius: 6, padding: "8px 12px",
+  },
+  queueName: { flex: 1, fontSize: 13, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  queueRep:  { display: "flex", alignItems: "center", gap: 4 },
+  repInput:  {
+    width: 44, background: "#282828", border: "1px solid #6a6a6a",
+    borderRadius: 4, color: "#fff", fontSize: 12,
+    padding: "3px 6px", textAlign: "center",
+    fontFamily: "'DM Mono', monospace", outline: "none",
+  },
+  removeBtn: { background: "transparent", border: "none", color: "#b3b3b3", cursor: "pointer", display: "flex" },
+  pickPanel: { background: "#282828", borderRadius: 8, padding: 16 },
+  pickList:  { display: "flex", flexDirection: "column", gap: 4, maxHeight: 280, overflowY: "auto" },
+  pickItem: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "8px 10px", borderRadius: 6,
+    transition: "background .15s",
+  },
+  pickName:  { fontSize: 13, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  addItemBtn: {
+    background: "transparent", border: "1px solid #6a6a6a",
+    borderRadius: "50%", color: "#1db954",
+    width: 26, height: 26,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer", flexShrink: 0,
+  },
+  createBtn: {
+    background: "#1db954", color: "#000",
+    border: "none", borderRadius: 30,
+    fontSize: 14, fontWeight: 700,
+    padding: "13px 32px",
+    cursor: "pointer", fontFamily: "'Figtree', sans-serif",
+  },
+  plList:   { display: "flex", flexDirection: "column", gap: 12 },
+  plCard: {
+    display: "flex", alignItems: "center", gap: 20,
+    background: "#181818", borderRadius: 10,
+    padding: "18px 20px",
+    transition: "background .15s",
+    position: "relative",
+  },
+  plCardPaused: { opacity: 0.6 },
+  plThumb: {
+    width: 64, height: 64, background: "#282828",
+    borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+    flexShrink: 0, position: "relative", overflow: "hidden",
+  },
+  playOverlay: {
+    position: "absolute", inset: 0,
+    background: "rgba(0,0,0,.5)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    border: "none", cursor: "pointer",
+    opacity: 0,
+    transition: "opacity .15s",
+  },
+  plInfo: { flex: 1, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" },
+  plName: { fontSize: 16, fontWeight: 700, color: "#fff" },
+  plMeta: { fontSize: 13, color: "#b3b3b3" },
+  plStatus: { display: "flex", alignItems: "center", gap: 6 },
+  statusDot: { width: 8, height: 8, borderRadius: "50%", animation: "pulse-green 2s infinite" },
+  plActions: { display: "flex", gap: 8 },
+  plBtn: {
+    display: "flex", alignItems: "center", gap: 6,
+    background: "transparent",
+    border: "1px solid #3e3e3e", borderRadius: 20,
+    color: "#fff", fontSize: 13, fontWeight: 600,
+    padding: "8px 16px",
+    cursor: "pointer", fontFamily: "'Figtree', sans-serif",
+    transition: "all .15s",
+  },
+  plBtnGreen:  { background: "#1db954", border: "1px solid #1db954", color: "#000" },
+  plBtnDanger: { border: "1px solid rgba(255,68,68,.3)", color: "#ff4444" },
+  empty: { display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "80px 0" },
+};

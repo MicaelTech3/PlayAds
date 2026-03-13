@@ -1,0 +1,17 @@
+# Node.js - Dependências do Frontend
+node_modules/
+dist/
+build/
+.env
+
+# Python - Ambientes virtuais e cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# PlayAds - Arquivos de ativação e segredos (NÃO envie sua chave!)
+serviceAccountKey.json
+activation.json
+cache/
+playads_config.json
