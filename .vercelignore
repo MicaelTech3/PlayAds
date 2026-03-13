@@ -1,0 +1,6 @@
+# Impede o Vercel de ler arquivos do player Python
+player.py
+requirements.txt
+.venv/
+cache/
+activation.json
