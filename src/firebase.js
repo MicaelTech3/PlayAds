@@ -11,6 +11,8 @@ import { getStorage } from "firebase/storage";
 const firebaseConfig = {
   apiKey: "AIzaSyBgwB_2syWdyK5Wc0E9rJIlDnXjwTf1OWE",
   authDomain: "anucio-web.firebaseapp.com",
+  // ADICIONE ESTA LINHA ABAIXO:
+  databaseURL: "https://anucio-web-default-rtdb.firebaseio.com",
   projectId: "anucio-web",
   storageBucket: "anucio-web.firebasestorage.app",
   messagingSenderId: "389219921149",
