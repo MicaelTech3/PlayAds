@@ -1,243 +1,211 @@
 // src/hooks/useFirebase.js
-// Todos os dados ficam em /users/{uid}/ — isolado por conta
+// Estrutura: users/{email,com}/playlists, anuncios, logs, etc.
 import { useEffect, useState, useCallback } from "react";
-import {
-  ref, onValue, push, remove, update, set, get
-} from "firebase/database";
-import {
-  ref as sRef, uploadBytesResumable, getDownloadURL, deleteObject
-} from "firebase/storage";
+import { ref, onValue, push, remove, update, set, get } from "firebase/database";
+import { ref as sRef, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, emailToKey } from "../context/AuthContext";
 
-const useUid = () => {
-  const { user } = useAuth();
-  return user?.uid ?? null;
+// Pega a chave do usuário (email com . → ,)
+const useUserKey = () => {
+  const { user, userData } = useAuth();
+  // Usa _key do userData se disponível, senão gera do email
+  return userData?._key ?? (user?.email ? emailToKey(user.email) : null);
 };
 
-// ── Anúncios ─────────────────────────────────────────────────────
+// ── Sanitiza item antes de salvar ─────────────────────────────────
+function sanitizeItem(item) {
+  const horarios = Array.isArray(item.horarios)
+    ? item.horarios.filter(h => h && typeof h === "string" && h.match(/^\d{2}:\d{2}$/))
+    : item.horario
+      ? [item.horario]
+      : [];
+
+  const diasValidos = ["dom","seg","ter","qua","qui","sex","sab"];
+  const dias = Array.isArray(item.dias) && item.dias.length > 0
+    ? item.dias.filter(d => diasValidos.includes(d))
+    : diasValidos;
+
+  return {
+    nome:     item.nome     || "",
+    url:      item.url      || "",
+    tipo:     item.tipo     || "url",
+    loops:    Number(item.loops) || 1,
+    filename: item.filename || null,
+    tamanho:  item.tamanho  || null,
+    horarios: horarios,
+    horario:  horarios[0] || null,
+    dias,
+  };
+}
+
+// ── Anúncios ──────────────────────────────────────────────────────
 export function useAnuncios() {
-  const uid = useUid();
+  const key = useUserKey();
   const [anuncios, setAnuncios] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading,  setLoading]  = useState(true);
 
   useEffect(() => {
-    if (!uid) return;
-    const unsub = onValue(ref(db, `users/${uid}/anuncios`), snap => {
+    if (!key) return;
+    return onValue(ref(db, `users/${key}/anuncios`), snap => {
       setAnuncios(snap.val() || {});
       setLoading(false);
     });
-    return unsub;
-  }, [uid]);
+  }, [key]);
 
   const deleteAnuncio = useCallback(async (id, filename) => {
     if (filename) {
-      try { await deleteObject(sRef(storage, `users/${uid}/audios/${filename}`)); } catch (_) { }
+      try { await deleteObject(sRef(storage, `users/${key}/audios/${filename}`)); } catch (_) {}
     }
-    await remove(ref(db, `users/${uid}/anuncios/${id}`));
-  }, [uid]);
+    await remove(ref(db, `users/${key}/anuncios/${id}`));
+  }, [key]);
 
   const uploadAnuncio = useCallback((file, onProgress) => {
     return new Promise((resolve, reject) => {
-      const filename = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-      const storageRef = sRef(storage, `users/${uid}/audios/${filename}`);
-      const task = uploadBytesResumable(storageRef, file);
-
+      const filename   = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+      const storageRef = sRef(storage, `users/${key}/audios/${filename}`);
+      const task       = uploadBytesResumable(storageRef, file);
       task.on("state_changed",
         snap => onProgress?.(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
         reject,
         async () => {
-          const url = await getDownloadURL(task.snapshot.ref);
+          const url  = await getDownloadURL(task.snapshot.ref);
           const novo = {
             nome: file.name.replace(/\.(mp3|wav)$/i, ""),
-            filename, url,
-            tamanho: file.size,
-            tipo: file.type,
-            criado_em: Date.now(),
+            filename, url, tamanho: file.size,
+            tipo: file.type, criado_em: Date.now(),
           };
-          await push(ref(db, `users/${uid}/anuncios`), novo);
+          await push(ref(db, `users/${key}/anuncios`), novo);
           resolve(novo);
         }
       );
     });
-  }, [uid]);
+  }, [key]);
 
   const addUrlAnuncio = useCallback(async ({ nome, url, tipo = "url" }) => {
     const isYT = url.includes("youtube.com") || url.includes("youtu.be");
     const novo = {
       nome: nome || (isYT ? "Vídeo YouTube" : url.split("/").pop()),
-      url,
-      filename: null,
-      tamanho: null,
+      url, filename: null, tamanho: null,
       tipo: isYT ? "youtube" : tipo,
       criado_em: Date.now(),
     };
-    await push(ref(db, `users/${uid}/anuncios`), novo);
+    await push(ref(db, `users/${key}/anuncios`), novo);
     return novo;
-  }, [uid]);
+  }, [key]);
 
   return { anuncios, loading, deleteAnuncio, uploadAnuncio, addUrlAnuncio };
 }
 
 // ── Playlists ─────────────────────────────────────────────────────
 export function usePlaylists() {
-  const uid = useUid();
+  const key = useUserKey();
   const [playlists, setPlaylists] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading,   setLoading]   = useState(true);
 
   useEffect(() => {
-    if (!uid) return;
-    // Listener em tempo real — sempre sincronizado
-    const unsub = onValue(ref(db, `users/${uid}/playlists`), snap => {
+    if (!key) return;
+    return onValue(ref(db, `users/${key}/playlists`), snap => {
       setPlaylists(snap.val() || {});
       setLoading(false);
     });
-    return unsub;
-  }, [uid]);
+  }, [key]);
 
   const criarPlaylist = useCallback(async (nome) => {
-    const r = await push(ref(db, `users/${uid}/playlists`), {
+    const r = await push(ref(db, `users/${key}/playlists`), {
       nome, ativa: false, itens: [], criado_em: Date.now(),
     });
     return r.key;
-  }, [uid]);
+  }, [key]);
 
   const renomearPlaylist = useCallback(async (id, novoNome) => {
-    await update(ref(db, `users/${uid}/playlists/${id}`), { nome: novoNome });
-  }, [uid]);
+    await update(ref(db, `users/${key}/playlists/${id}`), { nome: novoNome });
+  }, [key]);
 
   const togglePlaylist = useCallback(async (id, atual) => {
-    await update(ref(db, `users/${uid}/playlists/${id}`), { ativa: !atual });
-  }, [uid]);
+    await update(ref(db, `users/${key}/playlists/${id}`), { ativa: !atual });
+  }, [key]);
 
   const deletePlaylist = useCallback(async (id) => {
-    await remove(ref(db, `users/${uid}/playlists/${id}`));
-  }, [uid]);
+    await remove(ref(db, `users/${key}/playlists/${id}`));
+  }, [key]);
+
+  const salvarPlaylist = useCallback(async (id, data) => {
+    const itens = (data.itens || []).map(sanitizeItem);
+    console.log("💾 salvarPlaylist:", id, JSON.stringify({ nome: data.nome, ativa: data.ativa, itens }, null, 2));
+    await update(ref(db, `users/${key}/playlists/${id}`), {
+      nome:  data.nome,
+      ativa: data.ativa ?? false,
+      itens,
+    });
+  }, [key]);
 
   const adicionarItem = useCallback(async (playlistId, item) => {
-    const snap = await get(ref(db, `users/${uid}/playlists/${playlistId}/itens`));
+    const snap  = await get(ref(db, `users/${key}/playlists/${playlistId}/itens`));
     const itens = snap.val() || [];
-    const novoItem = {
-      id: `item_${Date.now()}`,
-      nome: item.nome,
-      url: item.url,
-      filename: item.filename || null,
-      tipo: item.tipo || "url",
-      tamanho: item.tamanho || null,
-      loops: item.loops || 1,
-      horario: item.horario || null,
-    };
-    itens.push(novoItem);
-    await update(ref(db, `users/${uid}/playlists/${playlistId}`), { itens });
-    return novoItem;
-  }, [uid]);
+    itens.push(sanitizeItem(item));
+    await update(ref(db, `users/${key}/playlists/${playlistId}`), { itens });
+  }, [key]);
 
   const atualizarItem = useCallback(async (playlistId, itemIndex, dados) => {
-    const snap = await get(ref(db, `users/${uid}/playlists/${playlistId}/itens`));
+    const snap  = await get(ref(db, `users/${key}/playlists/${playlistId}/itens`));
     const itens = snap.val() || [];
     if (itens[itemIndex]) {
-      itens[itemIndex] = { ...itens[itemIndex], ...dados };
-      await update(ref(db, `users/${uid}/playlists/${playlistId}`), { itens });
+      itens[itemIndex] = sanitizeItem({ ...itens[itemIndex], ...dados });
+      await update(ref(db, `users/${key}/playlists/${playlistId}`), { itens });
     }
-  }, [uid]);
+  }, [key]);
 
   const removerItem = useCallback(async (playlistId, itemIndex) => {
-    const snap = await get(ref(db, `users/${uid}/playlists/${playlistId}/itens`));
+    const snap  = await get(ref(db, `users/${key}/playlists/${playlistId}/itens`));
     const itens = snap.val() || [];
     itens.splice(itemIndex, 1);
-    await update(ref(db, `users/${uid}/playlists/${playlistId}`), { itens });
-  }, [uid]);
+    await update(ref(db, `users/${key}/playlists/${playlistId}`), { itens });
+  }, [key]);
 
   const uploadItemPlaylist = useCallback((playlistId, file, onProgress) => {
     return new Promise((resolve, reject) => {
-      const filename = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
-      const storageRef = sRef(storage, `users/${uid}/audios/${filename}`);
-      const task = uploadBytesResumable(storageRef, file);
-
+      const filename   = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+      const storageRef = sRef(storage, `users/${key}/audios/${filename}`);
+      const task       = uploadBytesResumable(storageRef, file);
       task.on("state_changed",
         snap => onProgress?.(Math.round(snap.bytesTransferred / snap.totalBytes * 100)),
         reject,
         async () => {
-          const url = await getDownloadURL(task.snapshot.ref);
-          const item = {
-            nome: file.name.replace(/\.(mp3|wav)$/i, ""),
-            url, filename, tipo: file.type, tamanho: file.size,
-            loops: 1, horario: null,
-          };
-          const novoItem = await adicionarItem(playlistId, item);
-          resolve(novoItem);
+          const url   = await getDownloadURL(task.snapshot.ref);
+          const item  = sanitizeItem({ nome: file.name.replace(/\.(mp3|wav)$/i, ""), url, filename, tipo: file.type, tamanho: file.size, loops: 1, horarios: [] });
+          const snap2 = await get(ref(db, `users/${key}/playlists/${playlistId}/itens`));
+          const itens = snap2.val() || [];
+          itens.push(item);
+          await update(ref(db, `users/${key}/playlists/${playlistId}`), { itens });
+          resolve(item);
         }
       );
     });
-  }, [uid, adicionarItem]);
+  }, [key]);
 
-  /**
-   * playNow — envia comando de reprodução ao software.
-   * 
-   * Modo 1: playNow(playlistId)
-   *   → toca a playlist existente pelo ID.
-   *
-   * Modo 2: playNow(null, { nome, url, loops, tipo })
-   *   → cria uma playlist temporária de um único item e envia o comando.
-   *   O software vai tocar esse item com o número de loops especificado.
-   */
   const playNow = useCallback(async (playlistId, singleItem = null) => {
     const ts = Date.now();
-
     if (singleItem) {
-      // Cria uma playlist temporária "Ad-Hoc" no Firebase com o item único
-      const tempPlaylist = {
-        nome: `Ad-Hoc: ${singleItem.nome}`,
-        ativa: false,
-        criado_em: ts,
-        temp: true, // flag para o software saber que é temporária
-        itens: [{
-          id: `adhoc_${ts}`,
-          nome: singleItem.nome,
-          url: singleItem.url,
-          tipo: singleItem.tipo || "url",
-          loops: singleItem.loops || 1,
-          horario: null,
-          filename: singleItem.filename || null,
-          tamanho: singleItem.tamanho || null,
-        }],
-      };
-
-      // Salva temporariamente e obtém o ID
-      const tempRef = await push(ref(db, `users/${uid}/playlists`), tempPlaylist);
-      const tempId = tempRef.key;
-
-      // Envia o comando de play
-      await set(ref(db, `users/${uid}/comandos/play_now`), {
-        playlist_id: tempId,
-        timestamp: ts,
-        executado: false,
-        temp_playlist_id: tempId, // o software pode deletar depois de tocar
+      const tempRef = await push(ref(db, `users/${key}/playlists`), {
+        nome: `Ad-Hoc: ${singleItem.nome}`, ativa: false,
+        criado_em: ts, temp: true,
+        itens: [sanitizeItem({ ...singleItem, loops: singleItem.loops || 1, horarios: [], horario: null })],
+      });
+      await set(ref(db, `users/${key}/comandos/play_now`), {
+        playlist_id: tempRef.key, timestamp: ts,
+        executado: false, temp_playlist_id: tempRef.key,
       });
     } else {
-      // Toca playlist existente
-      await set(ref(db, `users/${uid}/comandos/play_now`), {
-        playlist_id: playlistId,
-        timestamp: ts,
-        executado: false,
+      await set(ref(db, `users/${key}/comandos/play_now`), {
+        playlist_id: playlistId, timestamp: ts, executado: false,
       });
     }
-  }, [uid]);
+  }, [key]);
 
   const stopNow = useCallback(async () => {
-    await set(ref(db, `users/${uid}/comandos/stop`), {
-      timestamp: Date.now(), executado: false,
-    });
-  }, [uid]);
-
-  // salvarPlaylist: reescreve nome, ativa e itens de uma vez
-  const salvarPlaylist = useCallback(async (id, data) => {
-    await update(ref(db, `users/${uid}/playlists/${id}`), {
-      nome:  data.nome,
-      ativa: data.ativa ?? false,
-      itens: data.itens || [],
-    });
-  }, [uid]);
+    await set(ref(db, `users/${key}/comandos/stop`), { timestamp: Date.now(), executado: false });
+  }, [key]);
 
   return {
     playlists, loading,
@@ -249,47 +217,40 @@ export function usePlaylists() {
 
 // ── Players ───────────────────────────────────────────────────────
 export function usePlayers() {
-  const uid = useUid();
+  const key = useUserKey();
   const [playerStatus, setPlayerStatus] = useState(null);
-  // Objeto completo de players (compatível com página Players.jsx)
-  const [players, setPlayers] = useState({});
+  const [players,      setPlayers]      = useState({});
 
   useEffect(() => {
-    if (!uid) return;
-    // Player único por conta — lê /users/{uid}/player_status em tempo real
-    const unsub = onValue(ref(db, `users/${uid}/player_status`), snap => {
+    if (!key) return;
+    return onValue(ref(db, `users/${key}/player_status`), snap => {
       const data = snap.val();
       setPlayerStatus(data);
-      // Mantém compatibilidade com a página Players que espera um objeto { id: {...} }
-      if (data) {
-        setPlayers({ [uid]: data });
-      } else {
-        setPlayers({});
-      }
+      if (data) setPlayers({ [key]: data });
+      else      setPlayers({});
     });
-    return unsub;
-  }, [uid]);
+  }, [key]);
 
   return { playerStatus, players };
 }
 
 // ── Logs ──────────────────────────────────────────────────────────
 export function useLogs() {
-  const uid = useUid();
+  const key = useUserKey();
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    if (!uid) return;
-    const unsub = onValue(ref(db, `users/${uid}/logs`), snap => {
+    if (!key) return;
+    return onValue(ref(db, `users/${key}/logs`), snap => {
       const raw = snap.val() || {};
-      const arr = Object.entries(raw)
-        .map(([id, l]) => ({ id, ...l }))
-        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-        .slice(0, 150);
-      setLogs(arr);
+      setLogs(
+        Object.entries(raw)
+          .map(([id, l]) => ({ id, ...l }))
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+          .slice(0, 150)
+      );
     });
-    return unsub;
-  }, [uid]);
+  }, [key]);
 
   return { logs };
 }

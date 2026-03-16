@@ -6,12 +6,11 @@ import {
   createUserWithEmailAndPassword,
   signOut
 } from "firebase/auth";
-import { ref, get, set, update } from "firebase/database";
+import { ref, get, set } from "firebase/database";
 import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
 
-// Gera código no formato PLAY-XXXX-XXXX (baseado no uid)
 function gerarCodigo(uid) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let hash = 0;
@@ -22,49 +21,63 @@ function gerarCodigo(uid) {
   const abs = Math.abs(hash);
   let part1 = "", part2 = "";
   let n = abs;
-  for (let i = 0; i < 4; i++) {
-    part1 = chars[n % chars.length] + part1;
-    n = Math.floor(n / chars.length);
-  }
+  for (let i = 0; i < 4; i++) { part1 = chars[n % chars.length] + part1; n = Math.floor(n / chars.length); }
   n = abs ^ 0xDEADBEEF;
-  for (let i = 0; i < 4; i++) {
-    part2 = chars[Math.abs(n) % chars.length] + part2;
-    n = Math.floor(n / chars.length);
-  }
+  for (let i = 0; i < 4; i++) { part2 = chars[Math.abs(n) % chars.length] + part2; n = Math.floor(n / chars.length); }
   return `PLAY-${part1}-${part2}`;
 }
 
+// Converte email para chave Firebase-safe (. → ,)
+export function emailToKey(email) {
+  return email.replace(/\./g, ",");
+}
+
 export function AuthProvider({ children }) {
-  const [user,      setUser]      = useState(undefined); // undefined = carregando
-  const [userData,  setUserData]  = useState(null);      // dados do /users/{uid}
+  const [user,      setUser]      = useState(undefined);
+  const [userData,  setUserData]  = useState(null);
   const [loadingUD, setLoadingUD] = useState(false);
 
-  // Carrega dados do usuário e garante que o código existe
   const carregarUserData = useCallback(async (firebaseUser) => {
     if (!firebaseUser) { setUserData(null); return; }
     setLoadingUD(true);
     try {
-      const userRef  = ref(db, `users/${firebaseUser.uid}`);
-      const snap     = await get(userRef);
-      const existing = snap.val();
+      const emailKey = emailToKey(firebaseUser.email);
+
+      // Tenta ler por email primeiro (nova estrutura)
+      const emailRef  = ref(db, `users/${emailKey}`);
+      const emailSnap = await get(emailRef);
+
+      if (emailSnap.val()?.codigo) {
+        setUserData({ ...emailSnap.val(), _key: emailKey });
+        setLoadingUD(false);
+        return;
+      }
+
+      // Fallback: tenta ler por uid (estrutura antiga)
+      const uidRef  = ref(db, `users/${firebaseUser.uid}`);
+      const uidSnap = await get(uidRef);
+      const existing = uidSnap.val();
 
       if (existing?.codigo) {
-        setUserData(existing);
-      } else {
-        // Primeiro acesso — cria o nó e registra o código
-        const codigo = gerarCodigo(firebaseUser.uid);
-        const novosDados = {
-          email:           firebaseUser.email,
-          codigo,
-          player_ativo:    false,
-          player_last_seen: 0,
-          criado_em:       Date.now(),
-        };
-        await set(userRef, novosDados);
-        // Índice reverso: /codigos/{codigo} → uid
-        await set(ref(db, `codigos/${codigo}`), { uid: firebaseUser.uid });
-        setUserData(novosDados);
+        // Migra para estrutura de email
+        await set(emailRef, { ...existing, email: firebaseUser.email });
+        setUserData({ ...existing, _key: emailKey });
+        setLoadingUD(false);
+        return;
       }
+
+      // Primeiro acesso — cria nó por email
+      const codigo = gerarCodigo(firebaseUser.uid);
+      const novosDados = {
+        email:            firebaseUser.email,
+        codigo,
+        player_ativo:     false,
+        player_last_seen: 0,
+        criado_em:        Date.now(),
+      };
+      await set(emailRef, novosDados);
+      await set(ref(db, `codigos/${codigo}`), { uid: firebaseUser.uid, email: firebaseUser.email, emailKey });
+      setUserData({ ...novosDados, _key: emailKey });
     } catch (e) {
       console.error("carregarUserData:", e);
     } finally {
@@ -80,17 +93,9 @@ export function AuthProvider({ children }) {
     return unsub;
   }, [carregarUserData]);
 
-  const login = async (email, pass) => {
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
-    return cred;
-  };
-
-  const register = async (email, pass) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    return cred;
-  };
-
-  const logout = () => signOut(auth);
+  const login    = (email, pass) => signInWithEmailAndPassword(auth, email, pass);
+  const register = (email, pass) => createUserWithEmailAndPassword(auth, email, pass);
+  const logout   = () => signOut(auth);
 
   return (
     <AuthContext.Provider value={{ user, userData, loadingUD, login, register, logout }}>
