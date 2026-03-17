@@ -1,17 +1,16 @@
-// src/App.jsx
+// src/App.jsx  — PAINEL WEB
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { PlayerProvider } from "./context/PlayerContext";
 import { ToastProvider } from "./components/Toast";
-import Login        from "./pages/Login";
-import Sidebar      from "./components/Sidebar";
-import Home         from "./pages/Home";
-import All          from "./pages/All";
-import Anuncios     from "./pages/Anuncios";
-import Playlists    from "./pages/Playlists";
-import AtivarPlayer from "./pages/AtivarPlayer";
-import Players      from "./pages/Players";
-import Logs         from "./pages/Logs";
+import Login     from "./pages/Login";
+import Sidebar   from "./components/Sidebar";
+import Home      from "./pages/Home";
+import All       from "./pages/All";
+import Anuncios  from "./pages/Anuncios";
+import Playlists from "./pages/Playlists";
+import Players   from "./pages/Players";   // ← única aba (ativar + status)
+import Logs      from "./pages/Logs";
 import "./index.css";
 
 function MainApp() {
@@ -41,8 +40,7 @@ function MainApp() {
     all:       All,
     anuncios:  Anuncios,
     playlists: Playlists,
-    ativar:    AtivarPlayer,
-    players:   Players,
+    players:   Players,   // ← "ativar" e "players" viram uma só rota
     logs:      Logs,
   };
   const Page = VIEWS[view] || Home;

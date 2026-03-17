@@ -63,8 +63,8 @@ const NAV = [
     ),
   },
   {
-    id: "ativar",
-    label: "Ativar Player",
+    id: "players",
+    label: "Players",
     icon: (active) => (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <rect x="2" y="4" width="20" height="14" rx="2"
@@ -77,22 +77,6 @@ const NAV = [
         <path d="M8.5 8.5a5 5 0 017 0M6 6a8.5 8.5 0 0112 0"
           stroke={active ? "#9b59f5" : "#6b6b80"} strokeWidth="1.6"
           strokeLinecap="round" fill="none" />
-      </svg>
-    ),
-  },
-  {
-    id: "players",
-    label: "Players",
-    icon: (active) => (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="3" width="18" height="13" rx="2"
-          stroke={active ? "#9b59f5" : "#6b6b80"} strokeWidth="1.8"
-          fill={active ? "rgba(155,89,245,.1)" : "none"} />
-        <path d="M7 20h10M12 16v4"
-          stroke={active ? "#9b59f5" : "#6b6b80"} strokeWidth="1.8" strokeLinecap="round" />
-        <circle cx="12" cy="9.5" r="2"
-          fill={active ? "#9b59f5" : "none"}
-          stroke={active ? "#9b59f5" : "#6b6b80"} strokeWidth="1.6" />
       </svg>
     ),
   },
@@ -135,7 +119,6 @@ export default function Sidebar({ view, setView }) {
         borderBottom: "1px solid #1a1728",
         minHeight: 64,
       }}>
-        {/* Logo icon */}
         <div style={{
           width: 32, height: 32, borderRadius: 9,
           background: "linear-gradient(135deg, #7c3aed, #9b59f5)",
@@ -188,7 +171,6 @@ export default function Sidebar({ view, setView }) {
                 if (!active) e.currentTarget.style.background = "transparent";
               }}
             >
-              {/* Active indicator */}
               {active && (
                 <div style={{
                   position: "absolute", left: 0, top: "20%", bottom: "20%",
@@ -221,7 +203,6 @@ export default function Sidebar({ view, setView }) {
         padding: "10px 8px",
         display: "flex", flexDirection: "column", gap: 4,
       }}>
-        {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(v => !v)}
           title={collapsed ? "Expandir" : "Recolher"}
@@ -248,7 +229,6 @@ export default function Sidebar({ view, setView }) {
           )}
         </button>
 
-        {/* User */}
         <button
           onClick={logout}
           title="Sair"
@@ -264,7 +244,6 @@ export default function Sidebar({ view, setView }) {
           onMouseEnter={e => e.currentTarget.style.background = "rgba(244,63,94,.08)"}
           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
         >
-          {/* Avatar */}
           <div style={{
             width: 28, height: 28, borderRadius: 8, flexShrink: 0,
             background: "linear-gradient(135deg, #332f4d, #221f33)",
