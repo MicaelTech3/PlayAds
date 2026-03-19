@@ -1,22 +1,16 @@
-// src/firebase.js
-// ─────────────────────────────────────────────────────────────
-//  SUBSTITUA COM AS SUAS CREDENCIAIS DO FIREBASE
-//  Console Firebase → Projeto → Configurações → Seus apps → Web
-// ─────────────────────────────────────────────────────────────
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBgwB_2syWdyK5Wc0E9rJIlDnXjwTf1OWE",
-  authDomain: "anucio-web.firebaseapp.com",
-  // ADICIONE ESTA LINHA ABAIXO:
-  databaseURL: "https://anucio-web-default-rtdb.firebaseio.com",
-  projectId: "anucio-web",
-  storageBucket: "anucio-web.firebasestorage.app",
-  messagingSenderId: "389219921149",
-  appId: "1:389219921149:web:247f583c8c045001eaa294"
+  apiKey:            process.env.REACT_APP_API_KEY,
+  authDomain:        process.env.REACT_APP_AUTH_DOMAIN,
+  databaseURL:       process.env.REACT_APP_DATABASE_URL,
+  projectId:         process.env.REACT_APP_PROJECT_ID,
+  storageBucket:     process.env.REACT_APP_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
+  appId:             process.env.REACT_APP_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
